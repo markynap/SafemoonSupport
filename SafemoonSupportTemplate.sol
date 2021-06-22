@@ -715,10 +715,11 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
         
 
   // number of tokens to trigger Safemoon Swap Event 
-  // Make Either 10 Million or 0.5% of Circulating Supply
-  uint256 private _safemoonBurnThreshhold = 10 * 10**6 * 10**9;
+
+  // Make Either 1 Million or 0.1% of Circulating Supply
+  uint256 private _safemoonBurnThreshhold = 1 * 10**6 * 10**9;
   
-  // the rate at which we mint new tokens: 1 Million or 0.05% of Circulating Supply
+  // the rate at which we mint new tokens: Make either 100,000 or 0.01% of Circulating Supply
   uint256 private _mintRate = _safemoonBurnThreshhold.div(10);
   
   // true if Tokens are Minted on every burnSafemoon() function call, false to stop minting altogether
