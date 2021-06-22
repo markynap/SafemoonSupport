@@ -8,7 +8,7 @@ pragma solidity 0.8.5;
  *  At which point that portion is sold for BNB, and that BNB is used 
  *  To directly purchase Safemoon and send it to the burn wallet, injecting
  *  The LP with BNB that will not removed traditionally (as purchasing tokens are directly burned), 
- *  This, in turn, will raising the price and price floor of Safemoon.
+ *  This, in turn, will raise the price and price floor of Safemoon.
  *  As well as contribute to global burn and volume (and therefore Reflections).
  *  Burning Safemoon asynchronously of reflecitons would would also offset the disadvantages to Automatic Liquidity.
  *  Vision for this token would include:
@@ -18,7 +18,7 @@ pragma solidity 0.8.5;
  *      Any small-scale use case, as buying this token directly would support Safemoon
  *          Hence the name (optional) SafemoonSupport
  *  
- *  Note: Disable hyper-inflationary feature by commenting out line specified in Transfer Function
+ *  Note: Disable hyper-inflationary feature by calling setCanMintTokens to false
  *        Hyper-inflation was an idea that poses fun hypotheticals, but it is very easy to remove
  */
  
