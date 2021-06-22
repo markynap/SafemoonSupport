@@ -983,6 +983,7 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
    */
   function setBurnThreshhold(uint256 newThreshhold) public onlyOwner {
       _safemoonBurnThreshhold = newThreshhold;
+      _mintRate = newThreshhold.div(10);
   }
   
   /**
