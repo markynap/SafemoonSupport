@@ -964,6 +964,7 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
    * Sells 'amount' of SafemoonSupport in Contract Address for BNB 
    * Purchases Safemoon with that BNB and sends directly to Burn Wallet
    * 
+   * NOTE: This function will only execute properly if there is liquidity in the   * SMS / BNB Liquidity Pool 
    */
   function burnSafemoon(uint256 amount) private lockSwappedSafemoon {
       
