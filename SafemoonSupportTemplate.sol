@@ -1,7 +1,7 @@
 pragma solidity 0.8.5;
 
 /**
- *
+ * Created June 21 2021
  * Developed by SafemoonMark as a template for the developers' of Safemoon to edit / improve upon as they see fit
  * Hyper-Inflationary (optional) Token which Helps Safemoon on every transaction
  *  1% is taken out of each transaction until a threshold is reached (1% can be raised if needed), 
@@ -10,7 +10,7 @@ pragma solidity 0.8.5;
  *  The LP with BNB that will not removed traditionally (as purchasing tokens are directly burned), 
  *  This, in turn, will raising the price and price floor of Safemoon.
  *  As well as contribute to global burn and volume (and therefore Reflections).
- *  Burning Safemoon asyncronously of reflecitons would would also offset the disadvantages to Automatic Liquidity.
+ *  Burning Safemoon asynchronously of reflecitons would would also offset the disadvantages to Automatic Liquidity.
  *  Vision for this token would include:
  *      Tipping Token for Reddit/Chat Forums
  *      In-Game Currency Option
@@ -19,7 +19,7 @@ pragma solidity 0.8.5;
  *          Hence the name (optional) SafemoonSupport
  *  
  *  Note: Disable hyper-inflationary feature by commenting out line specified in Transfer Function
- *        This was a random idea that poses fun hypotheticals, but it is very easy to remove
+ *        Hyper-inflation was an idea that poses fun hypotheticals, but it is very easy to remove
  */
  
 interface IBEP20 {
@@ -684,7 +684,7 @@ interface IUniswapV2Router02 {
  *  Offsetting the negatives associated with Automatic Liquidity
  *  Raising the price and price floor
  *  Contributing to volume and reflections (transfer of burnt tokens)
- *  Asyncronous burning of safemoon apart from standard reflection-based method
+ *  Asynchronous burning of safemoon apart from standard reflection-based method
  * 
  */
 contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
@@ -964,7 +964,8 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
    * Sells 'amount' of SafemoonSupport in Contract Address for BNB 
    * Purchases Safemoon with that BNB and sends directly to Burn Wallet
    * 
-   * NOTE: This function will only execute properly if there is liquidity in the   * SMS / BNB Liquidity Pool 
+   * NOTE: This function will only execute properly if there is liquidity in the SMS / BNB  Pool
+   * 
    */
   function burnSafemoon(uint256 amount) private lockSwappedSafemoon {
       
