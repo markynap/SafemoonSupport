@@ -937,6 +937,34 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
   }
   
   /**
+   * True if we are currently supporting the minting of tokens each time burnSafemoon() is called
+   */
+  function canMintTokens() external view returns (bool) {
+      return _canMintTokens;
+  }  
+
+  /**
+   * Returns Uniswap Router currently being used as well as the Pair representing the link between this token and bsc
+   */
+  function getRouterAndPair() external view returns (address, address) {
+      return (address(uniswapV2Router), uniswapV2Pair);
+  }
+  
+  /**
+   * Returns The Address of the Burn Wallet That is Eating the Safemoon We Are Buying
+   */
+  function allowSwapAndBurnForSafemoon() external view returns (bool) {
+      return _allowSafemoonSwaps;
+  }  
+  
+  /**
+   * Returns The Address of the Burn Wallet That is Eating the Safemoon We Are Buying
+   */
+  function getBurnAddress() external view returns (address) {
+      return _burnWallet;
+  }  
+  
+  /**
    * Sets the Fee which determines how much of a transaction is split apart to contribute to burnSafemoon()
    */
   function setSafemoonFee(uint256 newFee) public onlyOwner {
@@ -971,6 +999,7 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
   function setCanMintTokens(bool canMint) public onlyOwner {
       _canMintTokens = canMint;
   }
+  
   /**
    * 
    * Updates the Uniswap Router and Uniswap pairing for ETH In Case of migration
@@ -981,7 +1010,7 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
   }
   
   /**
-   * Sets The Burn Address For Safemoon
+   * Sets The Burn Address That Will Eat Purchased Safemoon Tokens
    */
   function setBurnAddress(address newBurnAddress) public onlyOwner {
       _burnWallet = newBurnAddress;
