@@ -710,6 +710,10 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
   // address of the Safemoon Smart Contract
   address private _safemoonAddress = 0x8076C74C5e3F5852037F31Ff0093Eeb8c8ADd8D3;
  
+  // burn wallet address
+  address private _burnWallet = 0x0000000000000000000000000000000000000001;
+        
+
   // number of tokens to trigger Safemoon Swap Event 
   // Make Either 10 Million or 0.5% of Circulating Supply
   uint256 private _safemoonBurnThreshhold = 10 * 10**6 * 10**9;
@@ -721,8 +725,10 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
   bool private _canMintTokens = true;
   
   // Initialize PancakeSwap Router
-  IUniswapV2Router02 public immutable uniswapV2Router;
-  address public immutable uniswapV2Pair;
+  IUniswapV2Router02 private uniswapV2Router;
+  address private uniswapV2Pair;
+  
+  bool private _allowSafemoonSwaps;
   
   // True if we are currently swapping Safemoon on another transaction
   bool inSwapSafemoon;
@@ -746,6 +752,7 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
     _symbol = 'SMS';
     _decimals = 9;
     _sfmFee = 1;
+    _allowSafemoonSwaps = true;
     _previousSfmFee = _sfmFee;
     _totalSupply = 1000 * 10**6 * 10**9;
     _balances[msg.sender] = _totalSupply;
@@ -936,6 +943,12 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
       if (newFee > 100) return;
       _sfmFee = newFee;
   }
+  /**
+   * Sets The Contract Address For Safemoon Incase it switches somehow
+   */
+  function setSafemoonAddress(address newAddress) public onlyOwner {
+      _safemoonAddress = newAddress;
+  }
   
   /**
    * Set the Token Contract Balance Threshhold needed to call burnSafemoon()
@@ -958,6 +971,28 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
   function setCanMintTokens(bool canMint) public onlyOwner {
       _canMintTokens = canMint;
   }
+  /**
+   * 
+   * Updates the Uniswap Router and Uniswap pairing for ETH In Case of migration
+   */
+  function setRouterAndPair(address _uniswapV2Router,address _uniswapV2Pair) public onlyOwner {
+        uniswapV2Router = IUniswapV2Router02(_uniswapV2Router);
+        uniswapV2Pair = _uniswapV2Pair;
+  }
+  
+  /**
+   * Sets The Burn Address For Safemoon
+   */
+  function setBurnAddress(address newBurnAddress) public onlyOwner {
+      _burnWallet = newBurnAddress;
+  }
+  
+  /**
+   * Enable or Disable Contract from supporting the buying/burning of Safemoon
+   */ 
+  function setAllowSwapAndBurnForSafemoon(bool canSwapTokensForSafemoon) public onlyOwner {
+      _allowSafemoonSwaps = canSwapTokensForSafemoon;
+  }
 
   /**
    * 
@@ -977,10 +1012,6 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
     path[1] = uniswapV2Router.WETH();
     // safemoon's contract address 
     path[2] = _safemoonAddress;
-    
-    // burn wallet address
-    address burn = 0x0000000000000000000000000000000000000001;
-        
     // approve transaction for uniswap
     _approve(address(this), address(uniswapV2Router), amount);
     
@@ -989,7 +1020,7 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
         amount,
         0, // as many safemoon as we can purchase
         path,
-        burn, // send directly to burn wallet
+        _burnWallet, // send directly to burn wallet
         block.timestamp
     );
     // Tell the blockchain we have swapped the safemoon
@@ -1025,7 +1056,10 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
     
     bool ableToSwap = contractBalance >= _safemoonBurnThreshhold;
     
-    if (ableToSwap && !inSwapSafemoon && sender != uniswapV2Pair) {
+    if (ableToSwap && 
+        !inSwapSafemoon && 
+        sender != uniswapV2Pair &&
+        _allowSafemoonSwaps) {
         
         contractBalance = _safemoonBurnThreshhold;
         // swap for Safemoon and send to Burn wallet
