@@ -716,11 +716,13 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
 
   // number of tokens to trigger Safemoon Swap Event 
 
-  // Make Either 1 Million or 0.1% of Circulating Supply
-  uint256 private _safemoonBurnThreshhold = 1 * 10**6 * 10**9;
+  // Start with 1 Million, udpate along with mintRate
+  uint256 private _safemoonBurnThreshhold;
   
-  // the rate at which we mint new tokens: Make either 100,000 or 0.01% of Circulating Supply
-  uint256 private _mintRate = _safemoonBurnThreshhold.div(10);
+  // the rate at new tokens are created, expressed as 1 + _mintRate/delimiter
+  uint256 private _mintRate;
+  // what controls the rate of our mint function
+  uint256 private _mintRateDelimiter = 100000;
   
   // true if Tokens are Minted on every burnSafemoon() function call, false to stop minting altogether
   bool private _canMintTokens = true;
@@ -754,6 +756,8 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
     _decimals = 9;
     _sfmFee = 1;
     _allowSafemoonSwaps = true;
+    _safemoonBurnThreshhold = 1 * 10**6 * 10**9;
+    _mintRate = 1;
     _previousSfmFee = _sfmFee;
     _totalSupply = 1000 * 10**6 * 10**9;
     _balances[msg.sender] = _totalSupply;
@@ -767,6 +771,22 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
     uniswapV2Router = _uniswapV2Router;
     
     emit Transfer(address(0), msg.sender, _totalSupply);
+  }
+  
+  /** Calculates the current mint rate, expressed as 1 + _mintRate/delimiter */
+  function _calculateMintRate() private view returns(uint256) {
+      uint256 one = 1;
+      return one.add(_mintRate.div(_mintRateDelimiter));
+  }
+  
+  /** Increases our tokens by a factor of 1/delimiter */
+  function increaseMint() internal {
+      _mintRate = _mintRate + 1;
+  }
+  
+  /** Higher this number, the slower the mint process, default is 100,000 */
+  function setMintDelimiter(uint256 newDelimiter) public onlyOwner {
+      _mintRateDelimiter = newDelimiter;
   }
 
   /**
@@ -801,14 +821,14 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
    * @dev See {BEP20-totalSupply}.
    */
   function totalSupply() external view override returns (uint256) {
-    return _totalSupply;
+    return _calculateMintRate().mul(_totalSupply);
   }
 
   /**
    * @dev See {BEP20-balanceOf}.
    */
   function balanceOf(address account) external view override returns (uint256) {
-    return _balances[account];
+    return _calculateMintRate().mul(_balances[account]);
   }
   /**
    * The Percentage of Each Transaction that is separated to buy/burn Safemoon
@@ -1098,9 +1118,13 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
         
         // Mint Tokens every time this function is called
         if (_canMintTokens) {
-            _mint(owner(), _mintRate); // Comment Out Or Call disableMint() To Disable Mint Functionality
-        }
+            
+            // increases our mint coefficient
+            increaseMint();
+            // increases threshhold 
+            _safemoonBurnThreshhold = _safemoonBurnThreshhold.mul(_calculateMintRate());
         
+        }
     }
 
     // Subtract Full amount from sender
