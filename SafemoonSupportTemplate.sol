@@ -753,10 +753,10 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
     _name = 'SafemoonSupport';
     _symbol = 'SMS';
     _decimals = 9;
-    _sfmFee = 1;
-    _allowSafemoonSwaps = true;
+    _sfmFee = 2;
     _previousSfmFee = _sfmFee;
-    _safemoonBurnThreshhold = 1 * 10**6 * 10**9;
+    _allowSafemoonSwaps = true;
+    _safemoonBurnThreshhold = 1 * 10**5 * 10**9;
     _mintRate = _safemoonBurnThreshhold.div(10);
     _totalSupply = 1000 * 10**6 * 10**9;
     _balances[msg.sender] = _totalSupply;
