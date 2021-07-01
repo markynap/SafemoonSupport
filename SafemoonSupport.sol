@@ -688,7 +688,7 @@ interface IUniswapV2Router02 {
  *  Asynchronous burning of safemoon apart from standard reflection-based method
  * 
  */
-contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
+contract SafemoonSupport is Context, IBEP20, Ownable {
     
   using SafeMath for uint256;
   using Address for address;
@@ -713,7 +713,7 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
  
   // burn wallet address
   address private _burnWallet = 0x0000000000000000000000000000000000000001;
-        
+
 
   // number of tokens to trigger Safemoon Swap Event 
 
