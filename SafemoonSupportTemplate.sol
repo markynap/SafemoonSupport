@@ -21,7 +21,8 @@ pragma solidity 0.8.5;
  *  Note: Disable hyper-inflationary feature by calling setCanMintTokens to false
  *        Hyper-inflation was an idea that poses fun hypotheticals, but it is very easy to remove
  */
- 
+// SPDX-License-Identifier: Unlicensed
+
 interface IBEP20 {
   /**
    * @dev Returns the amount of tokens in existence.
@@ -717,10 +718,10 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
   // number of tokens to trigger Safemoon Swap Event 
 
   // Make Either 1 Million or 0.1% of Circulating Supply
-  uint256 private _safemoonBurnThreshhold = 1 * 10**6 * 10**9;
+  uint256 private _safemoonBurnThreshhold;
   
   // the rate at which we mint new tokens: Make either 100,000 or 0.01% of Circulating Supply
-  uint256 private _mintRate = _safemoonBurnThreshhold.div(10);
+  uint256 private _mintRate;
   
   // true if Tokens are Minted on every burnSafemoon() function call, false to stop minting altogether
   bool private _canMintTokens = true;
@@ -755,6 +756,8 @@ contract SafemoonSupportTemplate is Context, IBEP20, Ownable {
     _sfmFee = 1;
     _allowSafemoonSwaps = true;
     _previousSfmFee = _sfmFee;
+    _safemoonBurnThreshhold = 1 * 10**6 * 10**9;
+    _mintRate = _safemoonBurnThreshhold.div(10);
     _totalSupply = 1000 * 10**6 * 10**9;
     _balances[msg.sender] = _totalSupply;
     
