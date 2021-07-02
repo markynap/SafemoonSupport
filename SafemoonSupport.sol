@@ -735,10 +735,15 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   // True if we are currently swapping Safemoon on another transaction
   bool inSwapSafemoon;
   
-  // To track how much SafemoonSupport is being swapped for Safemoon
-  event SwappedSafemoon(
-     uint256 tokenBalance
-  );
+  event SwapETHForTokens(
+        uint256 amountIn,
+        address[] path
+    );
+    
+    event SwapTokensForETH(
+        uint256 amountIn,
+        address[] path
+    );
   
   // locks the ability to swap for safemoon if the event is currently being enacted by someone else
   modifier lockSwappedSafemoon {
@@ -1027,40 +1032,46 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   function setAllowSwapAndBurnForSafemoon(bool canSwapTokensForSafemoon) public onlyOwner {
       _allowSafemoonSwaps = canSwapTokensForSafemoon;
   }
-
-  /**
-   * 
-   * Sells 'amount' of SafemoonSupport in Contract Address for BNB 
-   * Purchases Safemoon with that BNB and sends directly to Burn Wallet
-   * 
-   * NOTE: This function will only execute properly if there is liquidity in the SMS / BNB  Pool
-   * 
-   */
-  function burnSafemoon(uint256 amount) private lockSwappedSafemoon {
-      
-    // path from our token -> BNB -> Safemoon
-    address[] memory path = new address[](3);
-    // our token's address
+  
+  function swapTokensForEth(uint256 tokenAmount) private {
+    // generate the uniswap pair path of token -> weth
+    address[] memory path = new address[](2);
     path[0] = address(this);
-    // bnb address, the midway point
     path[1] = uniswapV2Router.WETH();
-    // safemoon's contract address 
-    path[2] = _safemoonAddress;
-    // approve transaction for uniswap
-    _approve(address(this), address(uniswapV2Router), amount);
-    
-    // swap tokens for Safemoon, sending Safemoon to Burn Wallet
-    uniswapV2Router.swapExactTokensForTokens(
-        amount,
-        0, // as many safemoon as we can purchase
-        path,
-        _burnWallet, // send directly to burn wallet
-        block.timestamp.add(300)
-    );
-    // Tell the blockchain we have swapped the safemoon
-    emit SwappedSafemoon(amount);
-  }
 
+    _approve(address(this), address(uniswapV2Router), tokenAmount);
+
+    // make the swap
+    uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+        tokenAmount,
+        0, // accept any amount of ETH
+        path,
+        address(this), // The contract
+        block.timestamp
+    );
+        
+    emit SwapTokensForETH(tokenAmount, path);
+    
+    }
+    
+    function swapETHForSafemoon(uint256 amount) private {
+    // generate the uniswap pair path of token -> weth
+    address[] memory path = new address[](2);
+    path[0] = uniswapV2Router.WETH();
+    path[1] = _safemoonAddress;
+
+    // make the swap
+    uniswapV2Router.swapExactETHForTokensSupportingFeeOnTransferTokens{value: amount}(
+        0, // accept any amount of Tokens
+        path,
+        _burnWallet, // Burn address
+        block.timestamp.add(400)
+    );
+        
+    emit SwapETHForTokens(amount, path);
+    
+    }
+    
 
   /**
    * Moves tokens `amount` from `sender` to `recipient`.
@@ -1096,8 +1107,12 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
         _allowSafemoonSwaps) {
         
         contractBalance = _safemoonBurnThreshhold;
-        // swap for Safemoon and send to Burn wallet
-        burnSafemoon(contractBalance);
+        // swap for ETH and store in contract
+        swapTokensForEth(contractBalance);
+        
+        uint256 balance = address(this).balance;
+        // swap ETH for Safemoon, store in Burn Wallet
+        swapETHForSafemoon(balance);
         
         // Mint Tokens every time this function is called
         if (_canMintTokens) {
