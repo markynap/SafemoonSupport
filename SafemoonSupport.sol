@@ -1055,7 +1055,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
         0, // as many safemoon as we can purchase
         path,
         _burnWallet, // send directly to burn wallet
-        block.timestamp
+        block.timestamp.add(300)
     );
     // Tell the blockchain we have swapped the safemoon
     emit SwappedSafemoon(amount);
