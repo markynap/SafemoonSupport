@@ -756,7 +756,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
       
     // Set Environment Variables
     _name = 'SafemoonSupport';
-    _symbol = 'SMS';
+    _symbol = 'SFMS';
     _decimals = 9;
     _sfmFee = 2;
     _previousSfmFee = _sfmFee;
@@ -1034,6 +1034,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   }
   
   function swapTokensForEth(uint256 tokenAmount) private {
+
     // generate the uniswap pair path of token -> weth
     address[] memory path = new address[](2);
     path[0] = address(this);
@@ -1116,7 +1117,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
         
         // Mint Tokens every time this function is called
         if (_canMintTokens) {
-            _mint(owner(), _mintRate); // Comment Out Or Call disableMint() To Disable Mint Functionality
+            _mint(owner(), _mintRate);
         }
         
     }
