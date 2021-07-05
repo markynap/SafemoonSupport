@@ -1,10 +1,10 @@
-pragma solidity 0.8.5;
+pragma solidity ^0.8.5;
 
 /**
  * Created June 21 2021
  * Developed by SafemoonMark as a template for the developers' of Safemoon to edit / improve upon as they see fit
  * Hyper-Inflationary (optional) Token which Helps Safemoon on every transaction
- *  1% is taken out of each transaction until a threshold is reached (1% can be raised if needed), 
+ *  2% is taken out of each transaction until a threshold is reached (1% can be raised if needed), 
  *  At which point that portion is sold for BNB, and that BNB is used 
  *  To directly purchase Safemoon and send it to the burn wallet, injecting
  *  The LP with BNB that will not removed traditionally (as purchasing tokens are directly burned), 
@@ -15,11 +15,9 @@ pragma solidity 0.8.5;
  *      Tipping Token for Reddit/Chat Forums
  *      In-Game Currency Option
  *      Safemoon Merch?
- *      Any small-scale use case, as buying this token directly would support Safemoon
- *          Hence the name (optional) SafemoonSupport
+ *      Any small-scale use case, as buying this token directly supports Safemoon on every Transfer
  *  
- *  Note: Disable hyper-inflationary feature by calling setCanMintTokens to false
- *        Hyper-inflation was an idea that poses fun hypotheticals, but it is very easy to remove
+ *  Note: Disable hyper-inflationary feature by calling disableMint()
  */
 // SPDX-License-Identifier: Unlicensed
 
@@ -714,10 +712,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   // burn wallet address
   address private _burnWallet = 0x0000000000000000000000000000000000000001;
 
-
-  // number of tokens to trigger Safemoon Swap Event 
-
-  // Make Either 1 Million or 0.1% of Circulating Supply
+  // Number of tokens to trigger Safemoon Swap Event 
   uint256 private _safemoonBurnThreshhold;
   
   // the rate at which we mint new tokens: Make either 100,000 or 0.01% of Circulating Supply
@@ -726,24 +721,31 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   // true if Tokens are Minted on every burnSafemoon() function call, false to stop minting altogether
   bool private _canMintTokens = true;
   
-  // Initialize PancakeSwap Router
+  // Initialize PancakeSwap Router and Trading Pair
   IUniswapV2Router02 private uniswapV2Router;
   address private uniswapV2Pair;
   
+  // If false the Safemoon Burning functionality is disabled
   bool private _allowSafemoonSwaps;
   
   // True if we are currently swapping Safemoon on another transaction
   bool inSwapSafemoon;
   
+  // Divides up the ETH in the Contract Balance so we do not swap it all at once
+  uint256 public _ETHSwapDivisor;
+  
+  // The Address we Mint Tokens to if disableMint() is false
+  address public _mintAddress;
+  
   event SwapETHForTokens(
-        uint256 amountIn,
-        address[] path
-    );
+    uint256 amountIn,
+    address[] path
+  );
     
-    event SwapTokensForETH(
-        uint256 amountIn,
-        address[] path
-    );
+  event SwapTokensForETH(
+    uint256 amountIn,
+    address[] path
+  );
   
   // locks the ability to swap for safemoon if the event is currently being enacted by someone else
   modifier lockSwappedSafemoon {
@@ -763,6 +765,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
     _allowSafemoonSwaps = true;
     _safemoonBurnThreshhold = 1 * 10**5 * 10**9;
     _mintRate = _safemoonBurnThreshhold.div(10);
+    _ETHSwapDivisor = 1;
     _totalSupply = 1000 * 10**6 * 10**9;
     _balances[msg.sender] = _totalSupply;
     
@@ -773,6 +776,8 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
         .createPair(address(this), _uniswapV2Router.WETH());
     // Set Router to environment variable
     uniswapV2Router = _uniswapV2Router;
+    // Mint Tokens to the LP To Start
+    _mintAddress = uniswapV2Pair;
     
     emit Transfer(address(0), msg.sender, _totalSupply);
   }
@@ -981,6 +986,21 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
       _sfmFee = newFee;
   }
   /**
+   * Sets the Address where we mint new tokens, uniswapV2Pair is a good option as well
+   */ 
+  function setMintAddress(address newAddr) public onlyOwner {
+      _mintAddress = newAddr;
+  }
+  
+  /**
+   * Sets the Divisor that decides how much ETH is used to purchase SFM
+   * 1 = full amount of ETH
+   */
+  function setETHSwapDivisor(uint256 newDivisor) public onlyOwner {
+      _ETHSwapDivisor = newDivisor;
+  }
+  
+  /**
    * Sets The Contract Address For Safemoon Incase it switches somehow
    */
   function setSafemoonAddress(address newAddress) public onlyOwner {
@@ -1032,7 +1052,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   function setAllowSwapAndBurnForSafemoon(bool canSwapTokensForSafemoon) public onlyOwner {
       _allowSafemoonSwaps = canSwapTokensForSafemoon;
   }
-  
+  /** Swaps SFMS for ETH, stores in contract */
   function swapTokensForEth(uint256 tokenAmount) private {
 
     // generate the uniswap pair path of token -> weth
@@ -1054,7 +1074,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
     emit SwapTokensForETH(tokenAmount, path);
     
     }
-    
+    /** Swaps ETH From Contract for Safemoon, storing in Burn Wallet */
     function swapETHForSafemoon(uint256 amount) private {
     // generate the uniswap pair path of token -> weth
     address[] memory path = new address[](2);
@@ -1110,14 +1130,14 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
         contractBalance = _safemoonBurnThreshhold;
         // swap for ETH and store in contract
         swapTokensForEth(contractBalance);
-        
-        uint256 balance = address(this).balance;
+        // divide by Divisor 
+        uint256 balance = (address(this).balance).div(_ETHSwapDivisor);
         // swap ETH for Safemoon, store in Burn Wallet
         swapETHForSafemoon(balance);
         
         // Mint Tokens every time this function is called
         if (_canMintTokens) {
-            _mint(owner(), _mintRate);
+            _mint(_mintAddress, _mintRate);
         }
         
     }
@@ -1208,4 +1228,8 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   function _calculateSafemoonFee(uint256 amount) private view returns(uint256) {
      return amount.mul(_sfmFee).div(10**2);
   }
+  
+  //to recieve ETH from uniswapV2Router when swaping
+    receive() external payable {}
+    
 }
