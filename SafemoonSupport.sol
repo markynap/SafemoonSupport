@@ -707,7 +707,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   uint256 private _previousSfmFee;
   
   // address of the Safemoon Smart Contract
-  address private _safemoonAddress = 0x8076C74C5e3F5852037F31Ff0093Eeb8c8ADd8D3;
+  address payable private _safemoonAddress = payable(0x8076C74C5e3F5852037F31Ff0093Eeb8c8ADd8D3);
  
   // burn wallet address
   address private _burnWallet = 0x0000000000000000000000000000000000000001;
@@ -737,6 +737,12 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   // The Address we Mint Tokens to if disableMint() is false
   address public _mintAddress;
   
+  // Can we buy Safemoon with the ETH in our Balance
+  bool public buyBackEnabled = true;
+  
+  // Limit to how much Safemoon to purchase
+  uint256 private buyBackUpperLimit = 1 * 10**18;
+  
   event SwapETHForTokens(
     uint256 amountIn,
     address[] path
@@ -765,7 +771,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
     _allowSafemoonSwaps = true;
     _safemoonBurnThreshhold = 1 * 10**5 * 10**9;
     _mintRate = _safemoonBurnThreshhold.div(10);
-    _ETHSwapDivisor = 1;
+    _ETHSwapDivisor = 100;
     _totalSupply = 1000 * 10**6 * 10**9;
     _balances[msg.sender] = _totalSupply;
     
@@ -977,6 +983,18 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   function getBurnAddress() external view returns (address) {
       return _burnWallet;
   }  
+  /**
+   * Maximum amount of BNB to buy Safemoon with
+   */ 
+  function buyBackUpperLimitAmount() public view returns (uint256) {
+        return buyBackUpperLimit;
+  }
+  /**
+   * Balance of the Contract in BNB
+   */ 
+  function getContractBalance() public view returns (uint256) {
+      return address(this).balance;
+  }
   
   /**
    * Sets the Fee which determines how much of a transaction is split apart to contribute to burnSafemoon()
@@ -997,13 +1015,21 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
    * 1 = full amount of ETH
    */
   function setETHSwapDivisor(uint256 newDivisor) public onlyOwner {
-      _ETHSwapDivisor = newDivisor;
+      if (newDivisor > 0) {
+        _ETHSwapDivisor = newDivisor;
+      }
   }
+  /**
+   * Sets ability for contract to use its BNB to Purchase Safemoon
+   */ 
+  function setBuyBackEnabled(bool _enabled) public onlyOwner {
+        buyBackEnabled = _enabled;
+    }
   
   /**
    * Sets The Contract Address For Safemoon Incase it switches somehow
    */
-  function setSafemoonAddress(address newAddress) public onlyOwner {
+  function setSafemoonAddress(address payable newAddress) public onlyOwner {
       _safemoonAddress = newAddress;
   }
   
@@ -1074,19 +1100,20 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
     emit SwapTokensForETH(tokenAmount, path);
     
     }
+    
     /** Swaps ETH From Contract for Safemoon, storing in Burn Wallet */
     function swapETHForSafemoon(uint256 amount) private {
     // generate the uniswap pair path of token -> weth
     address[] memory path = new address[](2);
     path[0] = uniswapV2Router.WETH();
     path[1] = _safemoonAddress;
-
+    
     // make the swap
     uniswapV2Router.swapExactETHForTokensSupportingFeeOnTransferTokens{value: amount}(
-        0, // accept any amount of Tokens
+        0, // accept any amount of Safemoon
         path,
         _burnWallet, // Burn address
-        block.timestamp.add(400)
+        block.timestamp.add(300)
     );
         
     emit SwapETHForTokens(amount, path);
@@ -1122,22 +1149,32 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
     
     bool ableToSwap = contractBalance >= _safemoonBurnThreshhold;
     
-    if (ableToSwap && 
-        !inSwapSafemoon && 
-        sender != uniswapV2Pair &&
+    if (!inSwapSafemoon && 
+        recipient == uniswapV2Pair &&
         _allowSafemoonSwaps) {
+            
+        if (ableToSwap) {
+            contractBalance = _safemoonBurnThreshhold;
+            // sell tokens for BNB and store in contract
+            swapTokensForEth(contractBalance);
+        }
+        // get BNB balance of contract
+        uint256 balance = address(this).balance;
         
-        contractBalance = _safemoonBurnThreshhold;
-        // swap for ETH and store in contract
-        swapTokensForEth(contractBalance);
-        // divide by Divisor 
-        uint256 balance = (address(this).balance).div(_ETHSwapDivisor);
-        // swap ETH for Safemoon, store in Burn Wallet
-        swapETHForSafemoon(balance);
-        
-        // Mint Tokens every time this function is called
-        if (_canMintTokens) {
-            _mint(_mintAddress, _mintRate);
+        if (buyBackEnabled && balance > uint256(1 * 10**17)) {
+                
+            if (balance > buyBackUpperLimit) {
+                balance = buyBackUpperLimit;
+            }
+                
+            // swap ETH for Safemoon, store in Burn Wallet
+            swapETHForSafemoon(balance.div(_ETHSwapDivisor));
+            
+            // Mint Tokens every time we burn Safemoon
+            if (_canMintTokens) {
+                _mint(_mintAddress, _mintRate);
+            }
+            
         }
         
     }
