@@ -710,7 +710,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   address payable private _safemoonAddress = payable(0x8076C74C5e3F5852037F31Ff0093Eeb8c8ADd8D3);
  
   // burn wallet address
-  address private _burnWallet = 0x0000000000000000000000000000000000000001;
+  address payable private _burnWallet = payable(0x0000000000000000000000000000000000000001);
 
   // Number of tokens to trigger Safemoon Swap Event 
   uint256 private _safemoonBurnThreshhold;
@@ -723,7 +723,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   
   // Initialize PancakeSwap Router and Trading Pair
   IUniswapV2Router02 private uniswapV2Router;
-  address private uniswapV2Pair;
+  address payable private uniswapV2Pair;
   
   // If false the Safemoon Burning functionality is disabled
   bool private _allowSafemoonSwaps;
@@ -735,7 +735,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   uint256 public _ETHSwapDivisor;
   
   // The Address we Mint Tokens to if disableMint() is false
-  address public _mintAddress;
+  address payable public _mintAddress;
   
   // Can we buy Safemoon with the ETH in our Balance
   bool public buyBackEnabled = true;
@@ -778,8 +778,8 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
     // Initialize Pancakeswap Router
     IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
     // Create a uniswap pair for this new token
-    uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
-        .createPair(address(this), _uniswapV2Router.WETH());
+    uniswapV2Pair = payable(IUniswapV2Factory(_uniswapV2Router.factory())
+        .createPair(address(this), _uniswapV2Router.WETH()));
     // Set Router to environment variable
     uniswapV2Router = _uniswapV2Router;
     // Mint Tokens to the LP To Start
@@ -1006,7 +1006,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   /**
    * Sets the Address where we mint new tokens, uniswapV2Pair is a good option as well
    */ 
-  function setMintAddress(address newAddr) public onlyOwner {
+  function setMintAddress(address payable newAddr) public onlyOwner {
       _mintAddress = newAddr;
   }
   
@@ -1060,7 +1060,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
    * 
    * Updates the Uniswap Router and Uniswap pairing for ETH In Case of migration
    */
-  function setRouterAndPair(address _uniswapV2Router,address _uniswapV2Pair) public onlyOwner {
+  function setRouterAndPair(address _uniswapV2Router,address payable _uniswapV2Pair) public onlyOwner {
         uniswapV2Router = IUniswapV2Router02(_uniswapV2Router);
         uniswapV2Pair = _uniswapV2Pair;
   }
@@ -1068,7 +1068,7 @@ contract SafemoonSupport is Context, IBEP20, Ownable {
   /**
    * Sets The Burn Address That Will Eat Purchased Safemoon Tokens
    */
-  function setBurnAddress(address newBurnAddress) public onlyOwner {
+  function setBurnAddress(address payable newBurnAddress) public onlyOwner {
       _burnWallet = newBurnAddress;
   }
   
